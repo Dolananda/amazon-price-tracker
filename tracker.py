@@ -1,15 +1,22 @@
+import os
+import re
+import smtplib
+
 import requests
 from bs4 import BeautifulSoup
-import smtplib
-import config
-import os
-import csv
-from datetime import datetime
-import re
+from dotenv import load_dotenv
 
-headers = {
+import database
+
+load_dotenv()
+
+EMAIL = os.getenv("TRACKER_EMAIL")
+EMAIL_PASSWORD = os.getenv("TRACKER_EMAIL_PASSWORD")
+RECEIVER_EMAIL = os.getenv("TRACKER_RECEIVER_EMAIL", EMAIL)
+
+HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-    "Accept-Language": "en-IN,en;q=0.9"
+    "Accept-Language": "en-IN,en;q=0.9",
 }
 
 
@@ -20,97 +27,56 @@ def sanitize_filename(name):
 
 def get_data(url):
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=HEADERS, timeout=10)
         soup = BeautifulSoup(response.content, "html.parser")
 
         title_tag = soup.find("span", {"id": "productTitle"})
         title = title_tag.get_text().strip() if title_tag else "Unknown Product"
 
         price_tag = soup.find("span", {"class": "a-price-whole"})
-
-        if price_tag:
-            price = price_tag.get_text()
-        else:
+        if not price_tag:
             price_tag = soup.find("span", {"class": "a-offscreen"})
-            if price_tag:
-                price = price_tag.get_text()
-            else:
-                return None, None
+        if not price_tag:
+            return None, None
 
-        price = float(price.replace("₹", "").replace(",", "").strip())
-
+        price_text = price_tag.get_text()
+        price = float(price_text.replace("₹", "").replace(",", "").strip())
         return title, price
-
-    except:
+    except Exception as exc:
+        print("Scrape error:", exc)
         return None, None
 
 
-def get_csv_path(title):
-    if not os.path.exists("data"):
-        os.makedirs("data")
-
-    filename = sanitize_filename(title) + ".csv"
-    return os.path.join("data", filename)
-
-
-def read_last_price(csv_path):
-    if not os.path.exists(csv_path):
-        return None
-
-    with open(csv_path, "r") as f:
-        rows = list(csv.reader(f))
-        if len(rows) > 1:
-            return float(rows[-1][1])
-    return None
-
-
-def save_price(csv_path, price):
-    file_exists = os.path.isfile(csv_path)
-
-    with open(csv_path, "a", newline="") as f:
-        writer = csv.writer(f)
-
-        if not file_exists:
-            writer.writerow(["Time", "Price"])
-
-        writer.writerow([datetime.now(), price])
-
-
 def send_email(title, price, url):
+    if not EMAIL or not EMAIL_PASSWORD:
+        print("Email not configured (see .env) — skipping notification.")
+        return
     try:
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
-        server.login(config.EMAIL, config.PASSWORD)
-
+        server.login(EMAIL, EMAIL_PASSWORD)
         subject = "Price Drop Alert!"
         body = f"{title}\nNow: ₹{price}\n{url}"
-
         message = f"Subject: {subject}\n\n{body}"
-
-        server.sendmail(config.EMAIL, config.RECEIVER_EMAIL, message)
+        server.sendmail(EMAIL, RECEIVER_EMAIL, message)
         server.quit()
-
-    except Exception as e:
-        print("Email error:", e)
+    except Exception as exc:
+        print("Email error:", exc)
 
 
 def process(url):
     title, price = get_data(url)
-
     if not price:
         return None, None, "Failed to fetch"
 
-    csv_path = get_csv_path(title)
-    last_price = read_last_price(csv_path)
-
-    save_price(csv_path, price)
+    product_id = database.get_or_create_product(url, title)
+    last_price = database.get_last_price(product_id)
+    database.save_price_point(product_id, price)
 
     if last_price is None:
         return title, price, "First entry saved"
-
     elif price < last_price:
         send_email(title, price, url)
         return title, price, f"Price dropped from ₹{last_price} → ₹{price} (Email sent)"
-
     else:
         return title, price, f"No drop (Last: ₹{last_price})"

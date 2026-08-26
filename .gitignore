@@ -1,0 +1,15 @@
+# Secrets
+.env
+
+# Old CSV data store (superseded by MongoDB)
+data/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+*.egg-info/
+
+# OS
+.DS_Store

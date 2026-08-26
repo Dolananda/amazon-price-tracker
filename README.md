@@ -1,14 +1,50 @@
-The primitive version of the Amazon price tracker.
+# Amazon Price Tracker
 
-Features:
-- Sends you an email if the prices drop below your target price.
-- Automatically generates a CSV file to record the prices and their timestamps of the product.
-- Graphical visualization of the CSV data.
+Track an Amazon product's price, store its history in MongoDB, and get emailed
+the moment the price drops.
 
+## Features
 
-How to use it:
-- Install the Source Code (zip) file and extract it.
-- Make sure you have the latest version of Python installed on your PC.
-- Go to the command prompt and run "pip install -r requirements.txt" to install dependencies.
-- Open and customize the config.py file as per the instructions given in the file.
-- Run "python gui.py" in your command prompt and enjoy :)
+- Scrapes an Amazon product page for its current title and price
+- Stores every price check in MongoDB (`products` + `price_history` collections)
+- Emails you when the price drops below the last recorded price
+- Simple Tkinter GUI with a live price-history chart
+
+## Setup
+
+1. Clone the repo and create a virtual environment.
+2. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+3. Copy `.env.example` to `.env` and fill in your values:
+   - `MONGO_URI` — e.g. `mongodb://localhost:27017` for local MongoDB, or your
+     MongoDB Atlas connection string
+   - `TRACKER_EMAIL` / `TRACKER_EMAIL_PASSWORD` — a Gmail address and an
+     [App Password](https://support.google.com/accounts/answer/185833)
+   - `TRACKER_RECEIVER_EMAIL` — where price-drop alerts get sent
+4. Make sure MongoDB is running (see below), then run:
+   ```
+   python gui.py
+   ```
+
+## Running MongoDB locally
+
+Easiest option is Docker:
+
+```
+docker run -d --name price-tracker-mongo -p 27017:27017 mongo:7
+```
+
+Then leave `MONGO_URI=mongodb://localhost:27017` in `.env`. Alternatively, use
+a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster and paste its
+connection string into `MONGO_URI` instead.
+
+## Data model
+
+- `products` — one document per tracked URL: `url`, `title`, `created_at`, `last_checked`
+- `price_history` — one document per price check: `product_id`, `price`, `timestamp`
+
+## Roadmap
+
+See [`CHANGELOG.md`](./CHANGELOG.md) for what's shipped and what's planned next.
