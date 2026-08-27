@@ -12,11 +12,18 @@ the moment the price drops.
 
 ## Setup
 
-1. Clone the repo and create a virtual environment.
-2. Install dependencies:
+1. Clone the repo, then create and activate a virtual environment:
+   ```
+   python -m venv venv
+   source venv/bin/activate      # Windows: venv\Scripts\activate
+   ```
+2. Install dependencies into it:
    ```
    pip install -r requirements.txt
    ```
+   If you're using VS Code, run **Python: Select Interpreter** (Ctrl+Shift+P) and pick the
+   interpreter inside `venv/` — otherwise Pylance will show "could not be resolved" warnings
+   even though the packages are installed correctly.
 3. Copy `.env.example` to `.env` and fill in your values:
    - `MONGO_URI` — e.g. `mongodb://localhost:27017` for local MongoDB, or your
      MongoDB Atlas connection string
@@ -44,7 +51,3 @@ connection string into `MONGO_URI` instead.
 
 - `products` — one document per tracked URL: `url`, `title`, `created_at`, `last_checked`
 - `price_history` — one document per price check: `product_id`, `price`, `timestamp`
-
-## Roadmap
-
-See [`CHANGELOG.md`](./CHANGELOG.md) for what's shipped and what's planned next.
