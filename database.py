@@ -83,3 +83,18 @@ def get_price_history(product_id):
 def get_all_products():
     db = get_db()
     return list(db.products.find().sort("title", 1))
+
+
+def delete_product(product_id):
+    """Remove a product and all of its price history."""
+    db = get_db()
+    db.products.delete_one({"_id": product_id})
+    db.price_history.delete_many({"product_id": product_id})
+
+
+def ensure_indexes():
+    """Create indexes for uniqueness and query performance. Safe to call
+    multiple times — MongoDB is a no-op if the index already exists."""
+    db = get_db()
+    db.products.create_index("url", unique=True)
+    db.price_history.create_index("product_id")
