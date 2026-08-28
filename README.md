@@ -8,7 +8,9 @@ the moment the price drops.
 - Scrapes an Amazon product page for its current title and price
 - Stores every price check in MongoDB (`products` + `price_history` collections)
 - Emails you when the price drops below the last recorded price
-- Simple Tkinter GUI with a live price-history chart
+- Track multiple products at once in a watchlist
+- Simple Tkinter GUI with a live price-history chart, plus lowest/highest price,
+  % change since you started tracking, and a moving-average trend line
 
 ## Setup
 

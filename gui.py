@@ -12,12 +12,37 @@ current_product_id = None
 products_cache = []  # listbox index -> product dict, kept in sync with the DB
 
 
+def compute_moving_average(prices, window=3):
+    result = []
+    for i in range(len(prices)):
+        start = max(0, i - window + 1)
+        chunk = prices[start : i + 1]
+        result.append(sum(chunk) / len(chunk))
+    return result
+
+
 def refresh_product_list():
     global products_cache
     products_cache = database.get_all_products()
     product_listbox.delete(0, tk.END)
     for product in products_cache:
         product_listbox.insert(tk.END, product["title"])
+
+
+def select_product_in_listbox(product_id):
+    for index, product in enumerate(products_cache):
+        if product["_id"] == product_id:
+            product_listbox.selection_clear(0, tk.END)
+            product_listbox.selection_set(index)
+            product_listbox.see(index)
+            break
+
+
+def show_product(product_id, title):
+    global current_product_id
+    current_product_id = product_id
+    title_label.config(text=title)
+    plot_graph(product_id)
 
 
 def add_and_check():
@@ -31,6 +56,11 @@ def add_and_check():
         status_label.config(text=f"{title[:60]} — ₹{price} | {message}")
         url_entry.delete(0, tk.END)
         refresh_product_list()
+
+        product = database.get_db().products.find_one({"url": url})
+        if product:
+            select_product_in_listbox(product["_id"])
+            show_product(product["_id"], product["title"])
     else:
         status_label.config(text=message)
 
@@ -54,14 +84,11 @@ def check_all():
 
 
 def on_select(event):
-    global current_product_id
     selection = product_listbox.curselection()
     if not selection:
         return
     product = products_cache[selection[0]]
-    current_product_id = product["_id"]
-    title_label.config(text=product["title"])
-    plot_graph(current_product_id)
+    show_product(product["_id"], product["title"])
 
 
 def delete_selected():
@@ -78,22 +105,48 @@ def delete_selected():
     if current_product_id == product["_id"]:
         current_product_id = None
         title_label.config(text="Product Name")
+        stats_label.config(text="")
         fig.clear()
         canvas.draw()
     refresh_product_list()
 
 
+def update_stats(product_id):
+    stats = database.get_price_stats(product_id)
+    if not stats:
+        stats_label.config(text="")
+        return
+
+    change = stats["percent_change_from_first"]
+    arrow = "▼" if change < 0 else ("▲" if change > 0 else "→")
+    window_size = min(stats["checks"], 5)
+
+    stats_label.config(
+        text=(
+            f"Lowest: ₹{stats['lowest']:.0f}   "
+            f"Highest: ₹{stats['highest']:.0f}   "
+            f"Moving avg (last {window_size}): ₹{stats['moving_average']:.0f}   "
+            f"Since first check: {arrow} {abs(change):.1f}%"
+        )
+    )
+
+
 def plot_graph(product_id):
     history = database.get_price_history(product_id)
     if not history:
+        stats_label.config(text="")
         return
 
     times = [h["timestamp"] for h in history]
     prices = [h["price"] for h in history]
+    moving_avg = compute_moving_average(prices)
 
     fig.clear()
     ax = fig.add_subplot(111)
-    ax.plot(times, prices, marker="o")
+    ax.plot(times, prices, marker="o", label="Price")
+    if len(prices) > 1:
+        ax.plot(times, moving_avg, linestyle="--", label="Moving avg")
+        ax.legend()
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d-%m %H:%M"))
     ax.xaxis.set_major_locator(mdates.AutoDateLocator())
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
@@ -103,13 +156,15 @@ def plot_graph(product_id):
     fig.tight_layout()
     canvas.draw()
 
+    update_stats(product_id)
+
 
 database.ensure_indexes()
 
 # GUI
 window = tk.Tk()
 window.title("Amazon Price Tracker")
-window.geometry("900x550")
+window.geometry("900x580")
 
 # --- Top: add product ---
 top_frame = tk.Frame(window)
@@ -143,6 +198,9 @@ right_frame.pack(side="left", fill="both", expand=True, padx=10)
 
 title_label = tk.Label(right_frame, text="Product Name", wraplength=550)
 title_label.pack()
+
+stats_label = tk.Label(right_frame, text="", wraplength=550, fg="#444444")
+stats_label.pack(pady=(2, 0))
 
 fig = plt.Figure(figsize=(6, 3.5))
 canvas = FigureCanvasTkAgg(fig, master=right_frame)

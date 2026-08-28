@@ -85,6 +85,30 @@ def get_all_products():
     return list(db.products.find().sort("title", 1))
 
 
+def get_price_stats(product_id):
+    """Simple analytics over a product's price history: lowest/highest price
+    seen, % change since the first check, and a short moving average.
+    Returns None if there's no history yet."""
+    history = get_price_history(product_id)
+    if not history:
+        return None
+
+    prices = [h["price"] for h in history]
+    first = prices[0]
+    latest = prices[-1]
+    window = prices[-5:]
+
+    return {
+        "latest": latest,
+        "lowest": min(prices),
+        "highest": max(prices),
+        "first": first,
+        "percent_change_from_first": ((latest - first) / first) * 100 if first else 0,
+        "moving_average": sum(window) / len(window),
+        "checks": len(prices),
+    }
+
+
 def delete_product(product_id):
     """Remove a product and all of its price history."""
     db = get_db()
