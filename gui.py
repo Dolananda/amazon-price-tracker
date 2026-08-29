@@ -1,4 +1,5 @@
 import tkinter as tk
+from datetime import datetime
 from tkinter import messagebox
 
 import matplotlib.dates as mdates
@@ -6,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import database
+import scheduler
 from tracker import process
 
 current_product_id = None
@@ -73,11 +75,11 @@ def check_all():
     status_label.config(text="Checking all products...")
     window.update_idletasks()
 
-    for product in products_cache:
-        title, price, message = process(product["url"])
-        print(f"{title or product['title']}: {message}")
+    scheduler.check_all_products()
 
-    status_label.config(text=f"Checked {len(products_cache)} product(s). See console for details.")
+    status_label.config(
+        text=f"Checked {len(products_cache)} product(s) at {datetime.now().strftime('%H:%M:%S')}. See console for details."
+    )
     refresh_product_list()
     if current_product_id:
         plot_graph(current_product_id)
@@ -159,22 +161,56 @@ def plot_graph(product_id):
     update_stats(product_id)
 
 
+def refresh_after_scheduled_check():
+    """Runs on the main thread (via window.after) once a background check finishes."""
+    refresh_product_list()
+    if current_product_id:
+        plot_graph(current_product_id)
+    status_label.config(text=f"Auto-check completed at {datetime.now().strftime('%H:%M:%S')}")
+
+
+def handle_scheduled_check_complete():
+    """Called from the scheduler's background thread — must not touch Tkinter
+    widgets directly, so hand off to the main thread via window.after()."""
+    window.after(0, refresh_after_scheduled_check)
+
+
+def toggle_auto_check():
+    if auto_check_enabled.get():
+        scheduler.start(on_complete=handle_scheduled_check_complete)
+        status_label.config(text=f"Auto-check enabled — every {scheduler.CHECK_INTERVAL_HOURS:g}h.")
+    else:
+        scheduler.stop()
+        status_label.config(text="Auto-check disabled.")
+
+
+def on_close():
+    scheduler.stop()
+    window.destroy()
+
+
 database.ensure_indexes()
 
 # GUI
 window = tk.Tk()
 window.title("Amazon Price Tracker")
-window.geometry("900x580")
+window.geometry("900x600")
+window.protocol("WM_DELETE_WINDOW", on_close)
 
 # --- Top: add product ---
 top_frame = tk.Frame(window)
 top_frame.pack(fill="x", padx=10, pady=10)
 
 tk.Label(top_frame, text="Amazon URL:").pack(side="left")
-url_entry = tk.Entry(top_frame, width=60)
+url_entry = tk.Entry(top_frame, width=55)
 url_entry.pack(side="left", padx=5)
 tk.Button(top_frame, text="Add & Check", command=add_and_check).pack(side="left", padx=5)
 tk.Button(top_frame, text="Check All", command=check_all).pack(side="left", padx=5)
+
+auto_check_enabled = tk.BooleanVar(value=True)
+tk.Checkbutton(top_frame, text="Auto-check", variable=auto_check_enabled, command=toggle_auto_check).pack(
+    side="left", padx=10
+)
 
 status_label = tk.Label(window, text="", wraplength=850, anchor="w", justify="left")
 status_label.pack(fill="x", padx=10)
@@ -207,4 +243,5 @@ canvas = FigureCanvasTkAgg(fig, master=right_frame)
 canvas.get_tk_widget().pack(fill="both", expand=True)
 
 refresh_product_list()
+toggle_auto_check()  # starts the scheduler since the checkbox defaults to checked
 window.mainloop()
