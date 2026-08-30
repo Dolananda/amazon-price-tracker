@@ -8,19 +8,11 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import database
 import scheduler
+from analytics import compute_moving_average
 from tracker import process
 
 current_product_id = None
 products_cache = []  # listbox index -> product dict, kept in sync with the DB
-
-
-def compute_moving_average(prices, window=3):
-    result = []
-    for i in range(len(prices)):
-        start = max(0, i - window + 1)
-        chunk = prices[start : i + 1]
-        result.append(sum(chunk) / len(chunk))
-    return result
 
 
 def refresh_product_list():

@@ -12,6 +12,7 @@ the moment the price drops.
 - Simple Tkinter GUI with a live price-history chart, plus lowest/highest price,
   % change since you started tracking, and a moving-average trend line
 - Auto-checks every product on a schedule in the background (toggle on/off in the GUI)
+- Two interfaces: a Tkinter desktop app, or a Streamlit web dashboard — pick whichever you prefer
 
 ## Setup
 
@@ -34,9 +35,10 @@ the moment the price drops.
      [App Password](https://support.google.com/accounts/answer/185833)
    - `TRACKER_RECEIVER_EMAIL` — where price-drop alerts get sent
    - `CHECK_INTERVAL_HOURS` — how often the background scheduler auto-checks prices (default `6`)
-4. Make sure MongoDB is running (see below), then run:
+4. Make sure MongoDB is running (see below), then run either interface:
    ```
-   python gui.py
+   python gui.py                    # desktop app (Tkinter)
+   streamlit run streamlit_app.py   # web dashboard (opens in your browser)
    ```
 
 ## Running MongoDB locally
