@@ -1,0 +1,27 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: price-tracker-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  web:
+    build: .
+    container_name: price-tracker-web
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    env_file:
+      - .env
+    environment:
+      # Inside the Docker network, containers reach each other by service
+      # name — this overrides whatever MONGO_URI is set to in .env.
+      MONGO_URI: mongodb://mongo:27017
+    ports:
+      - "8501:8501"
+
+volumes:
+  mongo-data:

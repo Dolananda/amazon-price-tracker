@@ -14,7 +14,25 @@ the moment the price drops.
 - Auto-checks every product on a schedule in the background (toggle on/off in the GUI)
 - Two interfaces: a Tkinter desktop app, or a Streamlit web dashboard — pick whichever you prefer
 
-## Setup
+## Quick start with Docker (web dashboard + MongoDB)
+
+The fastest way to run the whole thing — no local Python or MongoDB install needed:
+
+1. Copy `.env.example` to `.env` and fill in at least your email settings (the
+   `MONGO_URI` value doesn't matter here — Compose overrides it automatically
+   so the app can reach the `mongo` container).
+2. Run:
+   ```
+   docker compose up --build
+   ```
+3. Open **http://localhost:8501** in your browser.
+
+MongoDB's data persists in a Docker volume (`mongo-data`), so it survives
+`docker compose down` / restarts. This setup only runs the web dashboard —
+the Tkinter desktop app (`gui.py`) needs a real display, so it isn't
+containerized; run it locally instead (see below).
+
+## Manual setup (without Docker)
 
 1. Clone the repo, then create and activate a virtual environment:
    ```
@@ -41,9 +59,9 @@ the moment the price drops.
    streamlit run streamlit_app.py   # web dashboard (opens in your browser)
    ```
 
-## Running MongoDB locally
+## Running MongoDB locally (non-Docker path)
 
-Easiest option is Docker:
+Easiest option is Docker, just for the database:
 
 ```
 docker run -d --name price-tracker-mongo -p 27017:27017 mongo:7
