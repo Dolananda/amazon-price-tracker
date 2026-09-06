@@ -64,6 +64,25 @@ else:
         col3.metric("Highest ever", f"₹{stats['highest']:.0f}")
         col4.metric("Since first check", f"{stats['percent_change_from_first']:+.1f}%")
 
+    current_target = selected_product.get("target_price")
+    target_col1, target_col2 = st.columns([3, 1])
+    with target_col1:
+        new_target = st.number_input(
+            "Target price (₹) — set to 0 to clear",
+            min_value=0.0,
+            value=float(current_target) if current_target else 0.0,
+            step=1.0,
+        )
+    with target_col2:
+        st.write("")  # vertical spacer to align the button with the input
+        if st.button("Set target", use_container_width=True):
+            database.set_target_price(selected_product["_id"], new_target if new_target > 0 else None)
+            st.rerun()
+
+    if current_target and stats:
+        reached = stats["latest"] <= current_target
+        st.write(f"🎯 Target: ₹{current_target:.0f} — {'✅ reached' if reached else 'not yet'}")
+
     if history:
         df = pd.DataFrame(history)[["timestamp", "price"]].copy()
         df["moving_avg"] = compute_moving_average(df["price"].tolist())

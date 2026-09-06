@@ -36,7 +36,34 @@ def show_product(product_id, title):
     global current_product_id
     current_product_id = product_id
     title_label.config(text=title)
+
+    product = database.get_product(product_id)
+    target_entry.delete(0, tk.END)
+    if product and product.get("target_price") is not None:
+        target_entry.insert(0, f"{product['target_price']:g}")
+
     plot_graph(product_id)
+
+
+def set_target():
+    if current_product_id is None:
+        status_label.config(text="Select a product first.")
+        return
+
+    value = target_entry.get().strip()
+    if not value:
+        database.set_target_price(current_product_id, None)
+        status_label.config(text="Target price cleared.")
+    else:
+        try:
+            target = float(value)
+        except ValueError:
+            status_label.config(text="Target price must be a number.")
+            return
+        database.set_target_price(current_product_id, target)
+        status_label.config(text=f"Target price set to ₹{target:.0f}.")
+
+    update_stats(current_product_id)
 
 
 def add_and_check():
@@ -100,6 +127,7 @@ def delete_selected():
         current_product_id = None
         title_label.config(text="Product Name")
         stats_label.config(text="")
+        target_entry.delete(0, tk.END)
         fig.clear()
         canvas.draw()
     refresh_product_list()
@@ -115,14 +143,20 @@ def update_stats(product_id):
     arrow = "▼" if change < 0 else ("▲" if change > 0 else "→")
     window_size = min(stats["checks"], 5)
 
-    stats_label.config(
-        text=(
-            f"Lowest: ₹{stats['lowest']:.0f}   "
-            f"Highest: ₹{stats['highest']:.0f}   "
-            f"Moving avg (last {window_size}): ₹{stats['moving_average']:.0f}   "
-            f"Since first check: {arrow} {abs(change):.1f}%"
-        )
+    text = (
+        f"Lowest: ₹{stats['lowest']:.0f}   "
+        f"Highest: ₹{stats['highest']:.0f}   "
+        f"Moving avg (last {window_size}): ₹{stats['moving_average']:.0f}   "
+        f"Since first check: {arrow} {abs(change):.1f}%"
     )
+
+    product = database.get_product(product_id)
+    target_price = product.get("target_price") if product else None
+    if target_price is not None:
+        reached = "✅ reached" if stats["latest"] <= target_price else "not yet"
+        text += f"\nTarget: ₹{target_price:.0f} ({reached})"
+
+    stats_label.config(text=text)
 
 
 def plot_graph(product_id):
@@ -227,8 +261,15 @@ right_frame.pack(side="left", fill="both", expand=True, padx=10)
 title_label = tk.Label(right_frame, text="Product Name", wraplength=550)
 title_label.pack()
 
-stats_label = tk.Label(right_frame, text="", wraplength=550, fg="#444444")
-stats_label.pack(pady=(2, 0))
+target_frame = tk.Frame(right_frame)
+target_frame.pack(pady=(4, 0), anchor="w")
+tk.Label(target_frame, text="Target price (₹):").pack(side="left")
+target_entry = tk.Entry(target_frame, width=10)
+target_entry.pack(side="left", padx=5)
+tk.Button(target_frame, text="Set Target", command=set_target).pack(side="left")
+
+stats_label = tk.Label(right_frame, text="", wraplength=550, fg="#444444", justify="left")
+stats_label.pack(pady=(4, 0), anchor="w")
 
 fig = plt.Figure(figsize=(6, 3.5))
 canvas = FigureCanvasTkAgg(fig, master=right_frame)

@@ -50,9 +50,31 @@ def get_or_create_product(url: str, title: str):
             "title": title,
             "created_at": datetime.utcnow(),
             "last_checked": datetime.utcnow(),
+            "target_price": None,
+            "target_alert_sent": False,
         }
     )
     return result.inserted_id
+
+
+def get_product(product_id):
+    db = get_db()
+    return db.products.find_one({"_id": product_id})
+
+
+def set_target_price(product_id, target_price):
+    """Set a product's target price, or clear it by passing None. Resets the
+    alert-sent flag so a newly set target can trigger a fresh notification."""
+    db = get_db()
+    db.products.update_one(
+        {"_id": product_id},
+        {"$set": {"target_price": target_price, "target_alert_sent": False}},
+    )
+
+
+def mark_target_alert_sent(product_id, sent: bool):
+    db = get_db()
+    db.products.update_one({"_id": product_id}, {"$set": {"target_alert_sent": sent}})
 
 
 def save_price_point(product_id, price: float):
