@@ -1,5 +1,7 @@
 # Amazon Price Tracker
 
+[![Tests](https://github.com/Dolananda/amazon-price-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/Dolananda/amazon-price-tracker/actions/workflows/tests.yml)
+
 Track an Amazon product's price, store its history in MongoDB, and get emailed
 the moment the price drops.
 
@@ -76,3 +78,16 @@ connection string into `MONGO_URI` instead.
 
 - `products` — one document per tracked URL: `url`, `title`, `created_at`, `last_checked`
 - `price_history` — one document per price check: `product_id`, `price`, `timestamp`
+
+## Running tests
+
+```
+pip install -r requirements-dev.txt
+pytest
+```
+
+Tests run automatically on every push via GitHub Actions (see the badge at
+the top). Locally: scraping and analytics tests run with no setup, but the
+database tests need a MongoDB instance reachable at `MONGO_URI` — they use a
+separate `amazon_price_tracker_test` database, so they never touch your real
+watchlist data.
