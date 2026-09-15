@@ -131,6 +131,41 @@ def get_price_stats(product_id):
     }
 
 
+def get_watchlist_summary():
+    """Return one summary row per tracked product, sorted by biggest drop from
+    its highest recorded price. Powers the overview table in both interfaces."""
+    summary = []
+    for product in get_all_products():
+        stats = get_price_stats(product["_id"])
+        if not stats:
+            continue
+
+        highest = stats["highest"]
+        drop_from_high = ((stats["latest"] - highest) / highest * 100) if highest else 0
+        target_price = product.get("target_price")
+
+        summary.append(
+            {
+                "product_id": product["_id"],
+                "title": product["title"],
+                "url": product["url"],
+                "latest": stats["latest"],
+                "lowest": stats["lowest"],
+                "highest": highest,
+                "drop_from_high_pct": drop_from_high,
+                "at_lowest_ever": stats["latest"] <= stats["lowest"],
+                "target_price": target_price,
+                "target_reached": (
+                    stats["latest"] <= target_price if target_price is not None else None
+                ),
+                "checks": stats["checks"],
+            }
+        )
+
+    summary.sort(key=lambda row: row["drop_from_high_pct"])
+    return summary
+
+
 def delete_product(product_id):
     """Remove a product and all of its price history."""
     db = get_db()

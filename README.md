@@ -16,6 +16,8 @@ the moment the price drops.
 - Auto-checks every product on a schedule in the background (toggle on/off in the GUI)
 - Two interfaces: a Tkinter desktop app, or a Streamlit web dashboard — pick whichever you prefer
 - Optional per-product target price — get a dedicated email the moment a price hits your target
+- Watchlist overview ranking every product by how far it's fallen from its peak
+- Export price history or the whole watchlist summary to CSV
 
 ## Quick start with Docker (web dashboard + MongoDB)
 

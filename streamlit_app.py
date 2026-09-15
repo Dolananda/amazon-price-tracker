@@ -11,6 +11,7 @@ import pandas as pd
 import streamlit as st
 
 import database
+import exporter
 import scheduler
 from analytics import compute_moving_average
 from tracker import process
@@ -50,6 +51,39 @@ products = database.get_all_products()
 if not products:
     st.info("Your watchlist is empty. Add a product URL from the sidebar to get started.")
 else:
+    st.subheader("Watchlist overview")
+    summary = database.get_watchlist_summary()
+
+    if summary:
+        overview = pd.DataFrame(
+            [
+                {
+                    "Product": row["title"][:55],
+                    "Latest": f"₹{row['latest']:.0f}",
+                    "Lowest": f"₹{row['lowest']:.0f}",
+                    "Highest": f"₹{row['highest']:.0f}",
+                    "Off peak": f"{row['drop_from_high_pct']:.1f}%",
+                    "Status": (
+                        "🎯 target reached"
+                        if row["target_reached"]
+                        else ("🔥 lowest ever" if row["at_lowest_ever"] else "")
+                    ),
+                }
+                for row in summary
+            ]
+        )
+        st.dataframe(overview, use_container_width=True, hide_index=True)
+
+        st.download_button(
+            "⬇️ Download watchlist summary (CSV)",
+            data=exporter.watchlist_summary_to_csv(),
+            file_name="watchlist_summary.csv",
+            mime="text/csv",
+        )
+
+    st.divider()
+    st.subheader("Product detail")
+
     titles = [p["title"] for p in products]
     selected_title = st.selectbox("Select a product", titles)
     selected_product = next(p for p in products if p["title"] == selected_title)
@@ -90,6 +124,16 @@ else:
     else:
         st.info("No price history yet for this product.")
 
-    if st.button("Remove from watchlist"):
-        database.delete_product(selected_product["_id"])
-        st.rerun()
+    action_col1, action_col2 = st.columns([1, 1])
+    with action_col1:
+        st.download_button(
+            "⬇️ Download price history (CSV)",
+            data=exporter.price_history_to_csv(selected_product["_id"]),
+            file_name="price_history.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with action_col2:
+        if st.button("Remove from watchlist", use_container_width=True):
+            database.delete_product(selected_product["_id"])
+            st.rerun()

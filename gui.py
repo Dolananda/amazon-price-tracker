@@ -1,12 +1,13 @@
 import tkinter as tk
 from datetime import datetime
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import database
+import exporter
 import scheduler
 from analytics import compute_moving_average
 from tracker import process
@@ -210,6 +211,42 @@ def toggle_auto_check():
         status_label.config(text="Auto-check disabled.")
 
 
+def export_price_history():
+    if current_product_id is None:
+        status_label.config(text="Select a product first.")
+        return
+
+    path = filedialog.asksaveasfilename(
+        defaultextension=".csv",
+        filetypes=[("CSV files", "*.csv")],
+        initialfile="price_history.csv",
+    )
+    if not path:
+        return
+
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        handle.write(exporter.price_history_to_csv(current_product_id))
+    status_label.config(text=f"Price history exported to {path}")
+
+
+def export_watchlist_summary():
+    if not products_cache:
+        status_label.config(text="Watchlist is empty — nothing to export.")
+        return
+
+    path = filedialog.asksaveasfilename(
+        defaultextension=".csv",
+        filetypes=[("CSV files", "*.csv")],
+        initialfile="watchlist_summary.csv",
+    )
+    if not path:
+        return
+
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        handle.write(exporter.watchlist_summary_to_csv())
+    status_label.config(text=f"Watchlist summary exported to {path}")
+
+
 def on_close():
     scheduler.stop()
     window.destroy()
@@ -254,6 +291,8 @@ product_listbox.pack(side="top", fill="y")
 product_listbox.bind("<<ListboxSelect>>", on_select)
 
 tk.Button(left_frame, text="Remove Selected", command=delete_selected).pack(pady=5, fill="x")
+tk.Button(left_frame, text="Export Watchlist CSV", command=export_watchlist_summary).pack(fill="x")
+tk.Button(left_frame, text="Export This Product CSV", command=export_price_history).pack(pady=5, fill="x")
 
 right_frame = tk.Frame(middle_frame)
 right_frame.pack(side="left", fill="both", expand=True, padx=10)
