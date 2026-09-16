@@ -10,6 +10,7 @@ the moment the price drops.
 - Scrapes an Amazon product page for its current title and price
 - Stores every price check in MongoDB (`products` + `price_history` collections)
 - Emails you when the price drops below the last recorded price
+- Optional Telegram and/or Discord alerts alongside email — enable any combination
 - Track multiple products at once in a watchlist
 - Simple Tkinter GUI with a live price-history chart, plus lowest/highest price,
   % change since you started tracking, and a moving-average trend line
@@ -58,6 +59,12 @@ containerized; run it locally instead (see below).
      [App Password](https://support.google.com/accounts/answer/185833)
    - `TRACKER_RECEIVER_EMAIL` — where price-drop alerts get sent
    - `CHECK_INTERVAL_HOURS` — how often the background scheduler auto-checks prices (default `6`)
+   - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` — optional. Message
+     [@BotFather](https://t.me/BotFather) to create a bot and get a token,
+     then message your new bot once and visit
+     `https://api.telegram.org/bot<token>/getUpdates` to find your chat ID.
+   - `DISCORD_WEBHOOK_URL` — optional. In a Discord server: Channel Settings
+     → Integrations → Webhooks → New Webhook → copy the URL.
 4. Make sure MongoDB is running (see below), then run either interface:
    ```
    python gui.py                    # desktop app (Tkinter)

@@ -1,18 +1,10 @@
-import os
 import re
-import smtplib
 
 import requests
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
 
 import database
-
-load_dotenv()
-
-EMAIL = os.getenv("TRACKER_EMAIL")
-EMAIL_PASSWORD = os.getenv("TRACKER_EMAIL_PASSWORD")
-RECEIVER_EMAIL = os.getenv("TRACKER_RECEIVER_EMAIL", EMAIL)
+import notifications
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
@@ -47,40 +39,6 @@ def get_data(url):
         return None, None
 
 
-def send_email(title, price, url):
-    if not EMAIL or not EMAIL_PASSWORD:
-        print("Email not configured (see .env) — skipping notification.")
-        return
-    try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(EMAIL, EMAIL_PASSWORD)
-        subject = "Price Drop Alert!"
-        body = f"{title}\nNow: ₹{price}\n{url}"
-        message = f"Subject: {subject}\n\n{body}"
-        server.sendmail(EMAIL, RECEIVER_EMAIL, message)
-        server.quit()
-    except Exception as exc:
-        print("Email error:", exc)
-
-
-def send_target_email(title, price, target_price, url):
-    if not EMAIL or not EMAIL_PASSWORD:
-        print("Email not configured (see .env) — skipping notification.")
-        return
-    try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(EMAIL, EMAIL_PASSWORD)
-        subject = "🎯 Target Price Reached!"
-        body = f"{title}\nNow: ₹{price} (target was ₹{target_price})\n{url}"
-        message = f"Subject: {subject}\n\n{body}"
-        server.sendmail(EMAIL, RECEIVER_EMAIL, message)
-        server.quit()
-    except Exception as exc:
-        print("Email error:", exc)
-
-
 def process(url):
     title, price = get_data(url)
     if not price:
@@ -96,7 +54,10 @@ def process(url):
 
     if target_price is not None:
         if price <= target_price and not target_alert_sent:
-            send_target_email(title, price, target_price, url)
+            notifications.notify(
+                "🎯 Target Price Reached!",
+                f"{title}\nNow: ₹{price} (target was ₹{target_price})\n{url}",
+            )
             database.mark_target_alert_sent(product_id, True)
         elif price > target_price and target_alert_sent:
             # Price bounced back above target — allow a future dip to alert again.
@@ -105,8 +66,8 @@ def process(url):
     if last_price is None:
         message = "First entry saved"
     elif price < last_price:
-        send_email(title, price, url)
-        message = f"Price dropped from ₹{last_price} → ₹{price} (Email sent)"
+        notifications.notify("Price Drop Alert!", f"{title}\nNow: ₹{price}\n{url}")
+        message = f"Price dropped from ₹{last_price} → ₹{price} (Alert sent)"
     else:
         message = f"No drop (Last: ₹{last_price})"
 
