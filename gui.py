@@ -8,9 +8,12 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import database
 import exporter
+import logging_config
 import scheduler
 from analytics import compute_moving_average
 from tracker import process
+
+logging_config.setup_logging()
 
 current_product_id = None
 products_cache = []  # listbox index -> product dict, kept in sync with the DB

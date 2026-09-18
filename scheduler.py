@@ -6,15 +6,20 @@ Kept separate from gui.py on purpose: this module has no Tkinter dependency,
 so it can just as easily be driven by a future web dashboard or run headless.
 """
 
+import logging
 import os
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 
 import database
+import logging_config
 from tracker import process
 
 load_dotenv()
+logging_config.setup_logging()  # no-op if an entry point already configured logging
+
+logger = logging.getLogger(__name__)
 
 CHECK_INTERVAL_HOURS = float(os.getenv("CHECK_INTERVAL_HOURS", "6"))
 
@@ -27,7 +32,7 @@ def check_all_products():
     products = database.get_all_products()
     for product in products:
         title, price, message = process(product["url"])
-        print(f"[scheduled check] {title or product['title']}: {message}")
+        logger.info("[scheduled check] %s: %s", title or product["title"], message)
     return products
 
 

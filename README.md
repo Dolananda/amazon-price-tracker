@@ -19,6 +19,8 @@ the moment the price drops.
 - Optional per-product target price — get a dedicated email the moment a price hits your target
 - Watchlist overview ranking every product by how far it's fallen from its peak
 - Export price history or the whole watchlist summary to CSV
+- Automatically retries a failed price check a few times before giving up
+- Logs to both the console and a rotating file under `logs/` for later debugging
 
 ## Quick start with Docker (web dashboard + MongoDB)
 

@@ -12,9 +12,12 @@ import streamlit as st
 
 import database
 import exporter
+import logging_config
 import scheduler
 from analytics import compute_moving_average
 from tracker import process
+
+logging_config.setup_logging()
 
 st.set_page_config(page_title="Amazon Price Tracker", page_icon="📦", layout="wide")
 
