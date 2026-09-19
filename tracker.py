@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 
 import database
 import notifications
+import url_utils
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ def get_data(url):
 
 
 def process(url):
+    url = url_utils.normalize_amazon_url(url)
     title, price = get_data(url)
     if not price:
         logger.error("Giving up on %s after %s attempts", url, MAX_RETRIES)

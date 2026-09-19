@@ -10,6 +10,7 @@ import database
 import exporter
 import logging_config
 import scheduler
+import url_utils
 from analytics import compute_moving_average
 from tracker import process
 
@@ -82,7 +83,7 @@ def add_and_check():
         url_entry.delete(0, tk.END)
         refresh_product_list()
 
-        product = database.get_db().products.find_one({"url": url})
+        product = database.get_db().products.find_one({"url": url_utils.normalize_amazon_url(url)})
         if product:
             select_product_in_listbox(product["_id"])
             show_product(product["_id"], product["title"])

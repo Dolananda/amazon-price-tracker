@@ -21,6 +21,7 @@ the moment the price drops.
 - Export price history or the whole watchlist summary to CSV
 - Automatically retries a failed price check a few times before giving up
 - Logs to both the console and a rotating file under `logs/` for later debugging
+- Normalizes Amazon URLs (strips tracking params) so the same product added twice doesn't create duplicate watchlist entries
 
 ## Quick start with Docker (web dashboard + MongoDB)
 
